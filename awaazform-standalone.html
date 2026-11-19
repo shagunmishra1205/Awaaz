@@ -668,8 +668,10 @@ dialog p { color: var(--muted); }
       <div class="owl owl-hero" aria-hidden="true">🦉</div>
       <h2 tabindex="-1" data-i18n="doneTitle"></h2>
       <p class="note" data-i18n="doneSub"></p>
+      <p id="fillNote" class="note" role="status" hidden></p>
       <div class="row">
-        <button type="button" id="btnPdf" class="btn primary" data-i18n="exportPdf"></button>
+        <button type="button" id="btnOpenForm" class="btn primary big" hidden data-i18n="openFilled"></button>
+        <button type="button" id="btnPdf" class="btn" data-i18n="exportPdf"></button>
         <button type="button" id="btnCopy" class="btn" data-i18n="copy"></button>
         <button type="button" id="btnNew" class="btn ghost" data-i18n="startOver"></button>
       </div>
@@ -806,6 +808,7 @@ const DICT = {
     pdfPages: 'PDF has more than 20 pages.',
     noPdfLib: 'The PDF reader could not load. Check your internet, or paste the text instead.',
     fileLoaded: 'File read. Now press Start.',
+    serverOn: 'Connected to the AwaazForm server. Your answers still stay on this device.',
 
     answeredCount: 'Answered: {0} of {1}',
     reviewTitle: 'Please check your answers',
@@ -822,6 +825,10 @@ const DICT = {
     copied: 'Copied!',
     copyFail: 'Could not copy. Please select the text and copy it.',
     startOver: 'Start a new form',
+    doneSubFill: 'Your answers are ready. AwaazForm never submits anything for you.',
+    openFilled: 'Open the real form with my answers',
+    fillNote: 'The real form will open with {0} answers already filled in. They are sent to the form’s website only when you press the button. Check them, then press Submit on that form yourself.',
+    fillLeft: '{0} answer(s) cannot be filled this way (private numbers or unsupported questions). Type those yourself.',
     doneTitle: 'Well done!',
     doneSub: 'Your answers are ready. Now open the real form and type these values yourself. AwaazForm never submits anything for you.',
     pdfHeading: 'AwaazForm answers',
@@ -918,8 +925,14 @@ const DICT = {
     linkHttps: "Only secure https:// links are allowed.",
     linkOk: "Link looks good. Open the form, copy its questions, then continue.",
     linkOpen: "Open the form",
+    linkReading: "Reading the form's questions…",
+    linkFound: "Found {0} questions. Starting now.",
+    linkNeedsSignin: "This form needs a sign-in, so it cannot be read. Open it, copy the questions, then paste them.",
+    linkNoQuestions: "No questions could be read from this page. Open it, copy the questions, then paste them.",
+    linkFetchFailed: "Could not open that link. Check it and try again, or paste the questions.",
+    linkBlocked: "That link cannot be used. Use a public https:// form link.",
     linkNext: "Paste its questions",
-    linkNote: "AwaazForm never sends your answers to the form site. It cannot read a link on its own yet, so copy the questions across.",
+    linkNote: "AwaazForm never sends your answers anywhere by itself. When its server is running, only this link is sent so it can read the questions. At the end, you can choose to open the real form with your answers filled in.",
     heroBadge: "Voice and text, in English and Hindi",
     heroTitle1: "Your voice.",
     heroTitle2: "Your form, filled right.",
@@ -1029,6 +1042,7 @@ const DICT = {
     pdfPages: 'PDF में 20 पन्नों से ज़्यादा हैं।',
     noPdfLib: 'PDF पढ़ने वाला टूल लोड नहीं हुआ। इंटरनेट जाँचें, या लिखा हुआ चिपकाएँ।',
     fileLoaded: 'फ़ाइल पढ़ ली गई। अब शुरू करें दबाएँ।',
+    serverOn: 'AwaazForm सर्वर से जुड़ गया। आपके जवाब अब भी इसी डिवाइस पर रहते हैं।',
 
     answeredCount: 'जवाब दिए गए: {0} / {1}',
     reviewTitle: 'कृपया अपने जवाब जाँचें',
@@ -1045,6 +1059,10 @@ const DICT = {
     copied: 'कॉपी हो गया!',
     copyFail: 'कॉपी नहीं हो सका। टेक्स्ट चुनकर खुद कॉपी करें।',
     startOver: 'नया फॉर्म शुरू करें',
+    doneSubFill: 'आपके जवाब तैयार हैं। AwaazForm आपके लिए कभी कुछ सबमिट नहीं करता।',
+    openFilled: 'मेरे जवाबों के साथ असली फॉर्म खोलें',
+    fillNote: 'असली फॉर्म {0} जवाब भरे हुए खुलेगा। जवाब फॉर्म की वेबसाइट पर तभी जाते हैं जब आप बटन दबाते हैं। उन्हें जाँचें, फिर उस फॉर्म पर खुद सबमिट दबाएँ।',
+    fillLeft: '{0} जवाब इस तरीके से नहीं भरे जा सकते (निजी नंबर या अनसमर्थित सवाल)। उन्हें खुद भरें।',
     doneTitle: 'शाबाश!',
     doneSub: 'आपके जवाब तैयार हैं। अब असली फॉर्म खोलें और ये जानकारी खुद टाइप करें। AwaazForm आपके लिए कुछ भी जमा नहीं करता।',
     pdfHeading: 'AwaazForm जवाब',
@@ -1141,8 +1159,14 @@ const DICT = {
     linkHttps: "सिर्फ़ सुरक्षित https:// लिंक चलेंगे।",
     linkOk: "लिंक सही लगता है। फॉर्म खोलें, सवाल कॉपी करें, फिर आगे बढ़ें।",
     linkOpen: "फॉर्म खोलें",
+    linkReading: "फॉर्म के सवाल पढ़े जा रहे हैं…",
+    linkFound: "{0} सवाल मिले। अब शुरू करते हैं।",
+    linkNeedsSignin: "इस फॉर्म के लिए साइन-इन चाहिए, इसलिए इसे पढ़ा नहीं जा सकता। इसे खोलें, सवाल कॉपी करें, फिर चिपकाएँ।",
+    linkNoQuestions: "इस पेज से सवाल नहीं पढ़े जा सके। इसे खोलें, सवाल कॉपी करें, फिर चिपकाएँ।",
+    linkFetchFailed: "यह लिंक नहीं खुल सका। लिंक जाँचकर फिर कोशिश करें, या सवाल चिपकाएँ।",
+    linkBlocked: "यह लिंक इस्तेमाल नहीं हो सकता। सार्वजनिक https:// फॉर्म लिंक चिपकाएँ।",
     linkNext: "सवाल चिपकाएँ",
-    linkNote: "AwaazForm आपके जवाब फॉर्म की साइट पर कभी नहीं भेजता। यह अभी लिंक खुद नहीं पढ़ सकता, इसलिए सवाल खुद कॉपी करें।",
+    linkNote: "AwaazForm आपके जवाब अपने-आप कहीं नहीं भेजता। सर्वर चालू हो तो सवाल पढ़ने के लिए सिर्फ़ यह लिंक भेजा जाता है। आख़िर में आप चाहें तो असली फॉर्म आपके जवाबों के साथ खोल सकते हैं।",
     heroBadge: "आवाज़ और लिखकर, हिंदी और English में",
     heroTitle1: "आपकी आवाज़।",
     heroTitle2: "आपका फॉर्म, सही भरा हुआ।",
@@ -1437,6 +1461,41 @@ function parseText(text) {
   });
 }
 
+// ---------- Pre-filled link for Google Forms ----------
+// Builds a link that opens the real Google Form with the confirmed answers already filled in.
+// The user checks it and presses Submit themselves; nothing is ever submitted for them.
+// Private ('sensitive') answers are never put in a link, because links stay in browser history.
+// Returns { url, filled, left } or null when this form cannot be pre-filled.
+// `left` counts answers the user must type in themselves.
+function buildPrefillUrl(form, answers) {
+  let u;
+  try { u = new URL(form.sourceUrl); } catch { return null; }
+  if (u.protocol !== 'https:' || u.hostname !== 'docs.google.com' || !/\/forms\//.test(u.pathname)) return null;
+  u.search = '';
+  u.hash = '';
+  u.pathname = `${u.pathname.replace(/\/(viewform|formResponse|edit|prefill)?\/?$/, '')}/viewform`;
+  u.searchParams.set('usp', 'pp_url');
+
+  let filled = 0;
+  let left = 0;
+  for (const f of form.fields) {
+    const v = answers[f.id];
+    if (v === undefined || v === null || v === '') continue;
+    const key = f.source_key || '';
+    if (f.type === 'sensitive' || !/^entry\.\d+$/.test(key)) { left++; continue; }
+    if (f.type === 'date') {
+      const [y, m, d] = String(v).split('-').map(Number);
+      u.searchParams.set(`${key}_year`, String(y));
+      u.searchParams.set(`${key}_month`, String(m));
+      u.searchParams.set(`${key}_day`, String(d));
+    } else {
+      u.searchParams.set(key, String(v));
+    }
+    filled++;
+  }
+  return filled ? { url: u.href, filled, left } : null;
+}
+
 // ---------- PII masking for copied / shared text ----------
 function maskPII(text) {
   return String(text)
@@ -1446,7 +1505,7 @@ function maskPII(text) {
     .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[email hidden]');
 }
 
-return { STORAGE_KEY, PREFS_KEY, EXPIRY_MS, SAMPLE_FORMS, toAscii, toDev, labelFor, fieldPrefill, displayValue, normalize, parseText, maskPII };
+return { STORAGE_KEY, PREFS_KEY, EXPIRY_MS, SAMPLE_FORMS, toAscii, toDev, labelFor, fieldPrefill, displayValue, normalize, parseText, maskPII, buildPrefillUrl };
 })();
 const SPEECH = (() => {
 // Browser speech wrappers. Speech-to-text uses the Web Speech API (Chrome / Edge).
@@ -1518,10 +1577,113 @@ function speak(text, lang, { onStart, onEnd } = {}) {
 
 return { speechInputSupported, speechOutputSupported, listen, stopListening, speak };
 })();
+const API = (() => {
+// Optional connection to the AwaazForm backend (FastAPI, backend/ folder).
+// Every function resolves to null when the server is off, slow or fails,
+// so the app always falls back to its on-device logic and keeps working.
+
+const API_BASE = (typeof window !== 'undefined' && window.AWAAZ_API_BASE) || 'http://localhost:8001/api';
+
+// PRIVACY SWITCH. The app tells users "Your answers stay on this device".
+// While this is false, typed answers are never sent to the server.
+// Set it to true only after that wording (consentText, trustLine in i18n.js) is updated.
+// Even when true, 'sensitive' fields (Aadhaar, PAN...) are never sent.
+const SERVER_VALIDATION = false;
+
+let online = null;
+let checkedAt = 0;
+const RECHECK_MS = 30000;
+
+async function call(path, options = {}, timeoutMs = 4000) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, { ...options, signal: ctl.signal });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null; // server off, blocked by CORS/CSP, or timed out
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// True if the backend answers its health check. The result is remembered for 30 seconds.
+async function serverOnline() {
+  if (online !== null && Date.now() - checkedAt < RECHECK_MS) return online;
+  const r = await call('/health', {}, 1500);
+  online = r?.status === 'ok';
+  checkedAt = Date.now();
+  return online;
+}
+
+// Same result shape as normalize() in data.js: { valid, value } or { valid:false, err }.
+// Returns null (use the local check) when disabled, sensitive, or the server is unavailable.
+async function serverValidate(field, raw) {
+  if (!SERVER_VALIDATION || field.type === 'sensitive') return null;
+  if (!(await serverOnline())) return null;
+  const r = await call('/validate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ field, raw: String(raw ?? '') }),
+  });
+  if (!r) return null;
+  return r.valid ? { valid: true, value: r.value } : { valid: false, err: r.err };
+}
+
+// Turns pasted questions into fields. Returns an array of fields, or null to use parseText().
+async function serverParseText(text) {
+  if (!(await serverOnline())) return null;
+  const r = await call('/parse/text', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  return r?.fields ?? null;
+}
+
+// Reads the text of a PDF or .txt on the server. Returns a string, or null to read it in the browser.
+async function serverExtractText(file) {
+  if (!(await serverOnline())) return null;
+  const body = new FormData();
+  body.append('file', file);
+  const r = await call('/extract/text', { method: 'POST', body }, 15000);
+  return typeof r?.text === 'string' && r.text ? r.text : null;
+}
+
+// Asks the server to visit a form link and read its questions.
+// The link is the only thing sent. Returns one of:
+//   { offline: true }                       server not running -> keep the manual flow
+//   { ok: true, title, fields, flagged, sourceUrl }    questions found
+//   { ok: false, code }                     blocked | fetch_failed | too_large | not_html | needs_signin | no_questions
+async function serverParseUrl(url) {
+  if (!(await serverOnline())) return { offline: true };
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 25000);
+  try {
+    const res = await fetch(`${API_BASE}/parse/url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+      signal: ctl.signal,
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) return { ok: true, title: body.title, fields: body.fields, flagged: body.flagged || 0, sourceUrl: body.source_url };
+    return { ok: false, code: body?.detail?.code || 'fetch_failed' };
+  } catch {
+    return { ok: false, code: 'fetch_failed' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+return { API_BASE, SERVER_VALIDATION, serverOnline, serverValidate, serverParseText, serverExtractText, serverParseUrl };
+})();
 const { t, getLang, setLang, applyStatic } = I18N;
 const { SAMPLE_FORMS, parseText, normalize, labelFor, displayValue, fieldPrefill,
-  EXPIRY_MS, STORAGE_KEY, PREFS_KEY } = DATA;
+  EXPIRY_MS, STORAGE_KEY, PREFS_KEY, buildPrefillUrl } = DATA;
 const { listen, stopListening, speak, speechInputSupported } = SPEECH;
+const { serverOnline, serverValidate, serverParseText, serverExtractText, serverParseUrl } = API;
+
 
 
 
@@ -1767,9 +1929,10 @@ function readQuestion() {
   speakText(text, lang);
 }
 
-function submitRaw(raw) {
+async function submitRaw(raw) {
   const f = current();
-  const res = normalize(f, raw);
+  // Server check is off by default (answers stay on the device); see SERVER_VALIDATION in api.js.
+  const res = (await serverValidate(f, raw)) || normalize(f, raw);
   if (!res.valid) return fail(t(res.err));
   state.pending = { value: res.value, raw: String(raw).trim() };
   showReadback();
@@ -1927,8 +2090,24 @@ function onReviewEdit(e) {
   askQuestion();
 }
 
+// Google Forms only: offer to open the real form with the confirmed answers filled in.
+let fillUrl = null;
+function renderFill() {
+  const fill = state.form && state.form.sourceUrl ? buildPrefillUrl(state.form, state.answers) : null;
+  fillUrl = fill ? fill.url : null;
+  $('#btnOpenForm').hidden = !fill;
+  $('#fillNote').hidden = !fill;
+  // The usual line says "type these values yourself", which is wrong when we can fill the form.
+  $('#screen-done [data-i18n="doneSub"]').textContent = t(fill ? 'doneSubFill' : 'doneSub');
+  if (fill) $('#fillNote').textContent = t('fillNote', fill.filled) + (fill.left ? ` ${t('fillLeft', fill.left)}` : '');
+}
+function openFilledForm() {
+  if (fillUrl) window.open(fillUrl, '_blank', 'noopener,noreferrer');
+}
+
 function onFinish() {
   clearSaved();
+  renderFill();
   show('done');
   confetti();
   owlHappy();
@@ -1974,7 +2153,7 @@ async function copyAnswers() {
 }
 
 // ---------- Paste a form link (checked here, questions copied by the user) ----------
-function onLinkSubmit(e) {
+async function onLinkSubmit(e) {
   e.preventDefault();
   const msg = $('#linkMsg');
   const panel = $('#linkPanel');
@@ -1992,14 +2171,34 @@ function onLinkSubmit(e) {
     return;
   }
   $('#linkOpen').href = url.href;
-  msg.textContent = t('linkOk');
   panel.hidden = false;
+
+  // With the server running, it visits the link and reads the questions for us.
+  msg.textContent = t('linkReading');
+  const r = await serverParseUrl(url.href);
+  if (r.offline) { msg.textContent = t('linkOk'); return; }
+  if (!r.ok) { msg.textContent = t(LINK_ERRORS[r.code] || 'linkFetchFailed'); return; }
+
+  msg.textContent = t('linkFound', r.fields.length);
+  startForm({ id: 'link', title: r.title, fields: r.fields, sourceUrl: r.sourceUrl });
+  if (r.flagged) showToast(t('flagCount', r.flagged));
 }
 
+const LINK_ERRORS = {
+  blocked: 'linkBlocked',
+  needs_signin: 'linkNeedsSignin',
+  no_questions: 'linkNoQuestions',
+  not_html: 'linkNoQuestions',
+  too_large: 'linkNoQuestions',
+  fetch_failed: 'linkFetchFailed',
+};
+
 // ---------- Paste & upload (F1) ----------
-function onPasteSubmit(e) {
+async function onPasteSubmit(e) {
   e.preventDefault();
-  const fields = parseText($('#pasteText').value);
+  const text = $('#pasteText').value;
+  // Only the question text goes to the server, never answers. Falls back to the on-device parser.
+  const fields = (await serverParseText(text)) || parseText(text);
   if (!fields.length) {
     $('#pasteErr').textContent = t('noQuestions');
     return;
@@ -2048,7 +2247,7 @@ async function onFile(e) {
     if (ext === 'pdf') {
       const head = new TextDecoder().decode(await file.slice(0, 5).arrayBuffer());
       if (head !== '%PDF-') throw new Error(t('fileType'));
-      text = await pdfToText(file);
+      text = (await serverExtractText(file)) || (await pdfToText(file));
     } else {
       text = await file.text();
     }
@@ -2093,6 +2292,8 @@ function switchLang(code) {
     else askQuestion(typed);
   } else if (s === 'review') {
     renderReview();
+  } else if (s === 'done') {
+    renderFill();
   } else if (s === 'start') {
     renderResume();
   }
@@ -2157,6 +2358,7 @@ function bind() {
   });
   $('#btnFinish').addEventListener('click', onFinish);
 
+  $('#btnOpenForm').addEventListener('click', openFilledForm);
   $('#btnPdf').addEventListener('click', exportPdf);
   $('#btnCopy').addEventListener('click', copyAnswers);
   $('#btnNew').addEventListener('click', () => { show('start'); renderResume(); });
@@ -2170,6 +2372,8 @@ function init() {
   updateToggles();
   renderResume();
   bind();
+  // Let the user know when the optional server is connected. Silent if it is off.
+  serverOnline().then((on) => { if (on) showToast(t('serverOn')); });
 }
 
 init();

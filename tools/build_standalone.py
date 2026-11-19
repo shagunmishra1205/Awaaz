@@ -1,5 +1,4 @@
 import os
-import os
 import re
 
 base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,20 +19,25 @@ i18n = wrap_module(f'{base}/js/i18n.js', 'I18N',
 data = wrap_module(f'{base}/js/data.js', 'DATA',
                    ['STORAGE_KEY', 'PREFS_KEY', 'EXPIRY_MS', 'SAMPLE_FORMS', 'toAscii',
                     'toDev', 'labelFor', 'fieldPrefill', 'displayValue', 'normalize',
-                    'parseText', 'maskPII'])
+                    'parseText', 'maskPII', 'buildPrefillUrl'])
 speech = wrap_module(f'{base}/js/speech.js', 'SPEECH',
                      ['speechInputSupported', 'speechOutputSupported', 'listen',
                       'stopListening', 'speak'])
+
+api = wrap_module(f'{base}/js/api.js', 'API',
+                  ['API_BASE', 'SERVER_VALIDATION', 'serverOnline', 'serverValidate',
+                   'serverParseText', 'serverExtractText', 'serverParseUrl'])
 
 app_src = open(f'{base}/js/app.js', encoding='utf-8').read()
 app_src = re.sub(r"^import[\s\S]*?from '[^']+';\s*$", '', app_src, flags=re.M)
 app_head = (
     "const { t, getLang, setLang, applyStatic } = I18N;\n"
     "const { SAMPLE_FORMS, parseText, normalize, labelFor, displayValue, fieldPrefill,\n"
-    "  EXPIRY_MS, STORAGE_KEY, PREFS_KEY } = DATA;\n"
+    "  EXPIRY_MS, STORAGE_KEY, PREFS_KEY, buildPrefillUrl } = DATA;\n"
     "const { listen, stopListening, speak, speechInputSupported } = SPEECH;\n"
+    "const { serverOnline, serverValidate, serverParseText, serverExtractText, serverParseUrl } = API;\n"
 )
-script = i18n + data + speech + app_head + app_src
+script = i18n + data + speech + api + app_head + app_src
 
 # inline the stylesheet, remove the CSP (it blocks file:// pages) and the module script
 html = html.replace('<link rel="stylesheet" href="css/styles.css">', f'<style>\n{css}\n</style>')

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://cdnjs.cloudflare.com http://localhost:8001 http://127.0.0.1:8001; object-src 'none'; base-uri 'none'">
   <title>AwaazForm – Voice-guided forms</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/styles.css">
@@ -300,8 +300,10 @@
       <div class="owl owl-hero" aria-hidden="true">🦉</div>
       <h2 tabindex="-1" data-i18n="doneTitle"></h2>
       <p class="note" data-i18n="doneSub"></p>
+      <p id="fillNote" class="note" role="status" hidden></p>
       <div class="row">
-        <button type="button" id="btnPdf" class="btn primary" data-i18n="exportPdf"></button>
+        <button type="button" id="btnOpenForm" class="btn primary big" hidden data-i18n="openFilled"></button>
+        <button type="button" id="btnPdf" class="btn" data-i18n="exportPdf"></button>
         <button type="button" id="btnCopy" class="btn" data-i18n="copy"></button>
         <button type="button" id="btnNew" class="btn ghost" data-i18n="startOver"></button>
       </div>

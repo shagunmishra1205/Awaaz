@@ -223,6 +223,41 @@ export function parseText(text) {
   });
 }
 
+// ---------- Pre-filled link for Google Forms ----------
+// Builds a link that opens the real Google Form with the confirmed answers already filled in.
+// The user checks it and presses Submit themselves; nothing is ever submitted for them.
+// Private ('sensitive') answers are never put in a link, because links stay in browser history.
+// Returns { url, filled, left } or null when this form cannot be pre-filled.
+// `left` counts answers the user must type in themselves.
+export function buildPrefillUrl(form, answers) {
+  let u;
+  try { u = new URL(form.sourceUrl); } catch { return null; }
+  if (u.protocol !== 'https:' || u.hostname !== 'docs.google.com' || !/\/forms\//.test(u.pathname)) return null;
+  u.search = '';
+  u.hash = '';
+  u.pathname = `${u.pathname.replace(/\/(viewform|formResponse|edit|prefill)?\/?$/, '')}/viewform`;
+  u.searchParams.set('usp', 'pp_url');
+
+  let filled = 0;
+  let left = 0;
+  for (const f of form.fields) {
+    const v = answers[f.id];
+    if (v === undefined || v === null || v === '') continue;
+    const key = f.source_key || '';
+    if (f.type === 'sensitive' || !/^entry\.\d+$/.test(key)) { left++; continue; }
+    if (f.type === 'date') {
+      const [y, m, d] = String(v).split('-').map(Number);
+      u.searchParams.set(`${key}_year`, String(y));
+      u.searchParams.set(`${key}_month`, String(m));
+      u.searchParams.set(`${key}_day`, String(d));
+    } else {
+      u.searchParams.set(key, String(v));
+    }
+    filled++;
+  }
+  return filled ? { url: u.href, filled, left } : null;
+}
+
 // ---------- PII masking for copied / shared text ----------
 export function maskPII(text) {
   return String(text)

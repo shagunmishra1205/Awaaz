@@ -1,9 +1,10 @@
 import { t, getLang, setLang, applyStatic } from './i18n.js';
 import {
   SAMPLE_FORMS, parseText, normalize, labelFor, displayValue, fieldPrefill,
-  EXPIRY_MS, STORAGE_KEY, PREFS_KEY,
+  EXPIRY_MS, STORAGE_KEY, PREFS_KEY, buildPrefillUrl,
 } from './data.js';
 import { listen, stopListening, speak, speechInputSupported } from './speech.js';
+import { serverOnline, serverValidate, serverParseText, serverExtractText, serverParseUrl } from './api.js';
 
 const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174';
 
@@ -247,9 +248,10 @@ function readQuestion() {
   speakText(text, lang);
 }
 
-function submitRaw(raw) {
+async function submitRaw(raw) {
   const f = current();
-  const res = normalize(f, raw);
+  // Server check is off by default (answers stay on the device); see SERVER_VALIDATION in api.js.
+  const res = (await serverValidate(f, raw)) || normalize(f, raw);
   if (!res.valid) return fail(t(res.err));
   state.pending = { value: res.value, raw: String(raw).trim() };
   showReadback();
@@ -407,8 +409,24 @@ function onReviewEdit(e) {
   askQuestion();
 }
 
+// Google Forms only: offer to open the real form with the confirmed answers filled in.
+let fillUrl = null;
+function renderFill() {
+  const fill = state.form && state.form.sourceUrl ? buildPrefillUrl(state.form, state.answers) : null;
+  fillUrl = fill ? fill.url : null;
+  $('#btnOpenForm').hidden = !fill;
+  $('#fillNote').hidden = !fill;
+  // The usual line says "type these values yourself", which is wrong when we can fill the form.
+  $('#screen-done [data-i18n="doneSub"]').textContent = t(fill ? 'doneSubFill' : 'doneSub');
+  if (fill) $('#fillNote').textContent = t('fillNote', fill.filled) + (fill.left ? ` ${t('fillLeft', fill.left)}` : '');
+}
+function openFilledForm() {
+  if (fillUrl) window.open(fillUrl, '_blank', 'noopener,noreferrer');
+}
+
 function onFinish() {
   clearSaved();
+  renderFill();
   show('done');
   confetti();
   owlHappy();
@@ -454,7 +472,7 @@ async function copyAnswers() {
 }
 
 // ---------- Paste a form link (checked here, questions copied by the user) ----------
-function onLinkSubmit(e) {
+async function onLinkSubmit(e) {
   e.preventDefault();
   const msg = $('#linkMsg');
   const panel = $('#linkPanel');
@@ -472,14 +490,34 @@ function onLinkSubmit(e) {
     return;
   }
   $('#linkOpen').href = url.href;
-  msg.textContent = t('linkOk');
   panel.hidden = false;
+
+  // With the server running, it visits the link and reads the questions for us.
+  msg.textContent = t('linkReading');
+  const r = await serverParseUrl(url.href);
+  if (r.offline) { msg.textContent = t('linkOk'); return; }
+  if (!r.ok) { msg.textContent = t(LINK_ERRORS[r.code] || 'linkFetchFailed'); return; }
+
+  msg.textContent = t('linkFound', r.fields.length);
+  startForm({ id: 'link', title: r.title, fields: r.fields, sourceUrl: r.sourceUrl });
+  if (r.flagged) showToast(t('flagCount', r.flagged));
 }
 
+const LINK_ERRORS = {
+  blocked: 'linkBlocked',
+  needs_signin: 'linkNeedsSignin',
+  no_questions: 'linkNoQuestions',
+  not_html: 'linkNoQuestions',
+  too_large: 'linkNoQuestions',
+  fetch_failed: 'linkFetchFailed',
+};
+
 // ---------- Paste & upload (F1) ----------
-function onPasteSubmit(e) {
+async function onPasteSubmit(e) {
   e.preventDefault();
-  const fields = parseText($('#pasteText').value);
+  const text = $('#pasteText').value;
+  // Only the question text goes to the server, never answers. Falls back to the on-device parser.
+  const fields = (await serverParseText(text)) || parseText(text);
   if (!fields.length) {
     $('#pasteErr').textContent = t('noQuestions');
     return;
@@ -528,7 +566,7 @@ async function onFile(e) {
     if (ext === 'pdf') {
       const head = new TextDecoder().decode(await file.slice(0, 5).arrayBuffer());
       if (head !== '%PDF-') throw new Error(t('fileType'));
-      text = await pdfToText(file);
+      text = (await serverExtractText(file)) || (await pdfToText(file));
     } else {
       text = await file.text();
     }
@@ -573,6 +611,8 @@ function switchLang(code) {
     else askQuestion(typed);
   } else if (s === 'review') {
     renderReview();
+  } else if (s === 'done') {
+    renderFill();
   } else if (s === 'start') {
     renderResume();
   }
@@ -637,6 +677,7 @@ function bind() {
   });
   $('#btnFinish').addEventListener('click', onFinish);
 
+  $('#btnOpenForm').addEventListener('click', openFilledForm);
   $('#btnPdf').addEventListener('click', exportPdf);
   $('#btnCopy').addEventListener('click', copyAnswers);
   $('#btnNew').addEventListener('click', () => { show('start'); renderResume(); });
@@ -650,6 +691,8 @@ function init() {
   updateToggles();
   renderResume();
   bind();
+  // Let the user know when the optional server is connected. Silent if it is off.
+  serverOnline().then((on) => { if (on) showToast(t('serverOn')); });
 }
 
 init();
